@@ -339,22 +339,67 @@ def calculate_bleu_on_test_set(model, test_en_path, test_fr_path):
     print(f"TEST SET BLEU SCORE: {score * 100:.2f}")
     print(f"------------------------------------------------")
 
+def translate_custom_sentences(model, sentence_pairs):
+    print(f"\n{'=' * 20} DỊCH 5 CÂU TỰ CHỌN (KÈM ĐÁP ÁN) {'=' * 20}")
+    model.eval()
+
+    for i, (src, ref) in enumerate(sentence_pairs):
+        start_time = time.time()
+
+        # Dịch
+        pred = beam_search_decode(model, src, beam_width=Config.BEAM_WIDTH)
+
+        end_time = time.time()
+
+        print(f"Custom #{i + 1} (Time: {end_time - start_time:.2f}s)")
+        print(f" Input : {src}")
+        print(f" Ref   : {ref}")  # Đáp án chuẩn
+        print(f" Pred  : {pred}")  # Máy dịch
+
+        # So sánh nhanh xem đúng không
+        if ref.lower().strip() == pred.lower().strip():
+            print("  Evaluation: PERFECT!")
+        else:
+            print("  Evaluation: Different")
+
+        print("-" * 60)
+
+def draw_loss_chart(train_losses, val_losses, save_path="loss_chart.png"):
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_losses, label='Train Loss', marker='o', color='blue')
+    plt.plot(val_losses, label='Validation Loss', marker='o', color='red')
+
+    plt.title('Training & Validation Loss History')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+
+    plt.savefig(save_path)
+    plt.close()  # Đóng plot để giải phóng bộ nhớ
+    print(f"\n📊 Đã lưu biểu đồ loss tại: {save_path}")
 
 # ==========================================
 # 5. MAIN EXECUTION
 # ==========================================
 
 if __name__ == "__main__":
-    # --- PHẦN 1: HUẤN LUYỆN (Comment lại nếu bạn đã train rồi và chỉ muốn test) ---
-    print(f"\nBắt đầu huấn luyện {Config.N_EPOCHS} epochs...")
+    print(f"\nBắt đầu huấn luyện {Config.N_EPOCHS} epochs (với Attention)...")
     best_valid_loss = float('inf')
     no_improve_epoch = 0
+
+    train_history = []
+    valid_history = []
 
     for epoch in range(Config.N_EPOCHS):
         start_time = time.time()
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion, Config.CLIP)
         valid_loss = evaluate_epoch(model, val_loader, criterion)
+
+        train_history.append(train_loss)
+        valid_history.append(valid_loss)
+
         scheduler.step(valid_loss)
 
         end_time = time.time()
@@ -376,10 +421,19 @@ if __name__ == "__main__":
             print("🛑 Early Stopping!")
             break
 
-    # --- PHẦN 2: ĐÁNH GIÁ (TEST) ---
-    print("\nĐang load lại model tốt nhất để đánh giá...")
-    # Load lại trọng số tốt nhất đã lưu (Epoch 17 trong log của bạn)
-    model.load_state_dict(torch.load(Config.MODEL_SAVE_PATH))
+    draw_loss_chart(train_history, valid_history)
 
-    # Chạy tính điểm BLEU
+    print("\nĐang load lại model tốt nhất để đánh giá...")
+    model.load_state_dict(torch.load(Config.MODEL_SAVE_PATH, map_location=DEVICE))
+
     calculate_bleu_on_test_set(model, Config.TEST_EN_PATH, Config.TEST_FR_PATH)
+
+    my_sentences = [
+        ("A black dog is running on the grass.", "Un chien noir court sur l'herbe."),
+        ("Two men are playing soccer in the park.", "Deux hommes jouent au football dans le parc."),
+        ("The woman in a red dress is reading a book.", "La femme à la robe rouge lit un livre."),
+        ("A little girl is eating an apple.", "Une petite fille mange une pomme."),
+        ("People are walking down the street.", "Les gens marchent dans la rue.")
+    ]
+
+    translate_custom_sentences(model, my_sentences)
