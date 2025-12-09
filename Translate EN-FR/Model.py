@@ -319,25 +319,70 @@ def calculate_bleu_on_test_set(model, test_en_path, test_fr_path):
         src = test_en[i]
         trg = test_fr[i]
 
-        # Dùng hàm translate đã viết ở bước trước
-        pred_sent = translate_sentence(src)
+        # --- SỬA LỖI TẠI ĐÂY: Truyền thêm 'model' ---
+        pred_sent = translate_sentence(src, model)
 
         # Tokenize kết quả dự đoán
         pred_tokens = fr_tokenizer(pred_sent)
         predictions.append(pred_tokens)
 
-        # Tokenize đáp án thật (Reference phải là list of list)
+        # Tokenize đáp án thật
         ref_tokens = [fr_tokenizer(trg)]
         references.append(ref_tokens)
 
         if (i + 1) % 100 == 0:
             print(f"Đã xử lý {i + 1}/{len(test_en)} câu...")
 
-    # Tính BLEU score bằng thư viện nltk
+    # Tính BLEU score
     score = corpus_bleu(references, predictions)
     print(f"------------------------------------------------")
     print(f"TEST SET BLEU SCORE: {score * 100:.2f}")
     print(f"------------------------------------------------")
+
+
+# ==========================================
+# 5. MAIN EXECUTION
+# ==========================================
+
+if __name__ == "__main__":
+    # --- PHẦN 1: HUẤN LUYỆN (Comment lại nếu bạn đã train rồi và chỉ muốn test) ---
+    print(f"\nBắt đầu huấn luyện {Config.N_EPOCHS} epochs...")
+    best_valid_loss = float('inf')
+    no_improve_epoch = 0
+
+    for epoch in range(Config.N_EPOCHS):
+        start_time = time.time()
+
+        train_loss = train_epoch(model, train_loader, optimizer, criterion, Config.CLIP)
+        valid_loss = evaluate_epoch(model, val_loader, criterion)
+        scheduler.step(valid_loss)
+
+        end_time = time.time()
+        mins, secs = divmod(end_time - start_time, 60)
+
+        if valid_loss < best_valid_loss:
+            best_valid_loss = valid_loss
+            torch.save(model.state_dict(), Config.MODEL_SAVE_PATH)
+            no_improve_epoch = 0
+            print(f'Epoch: {epoch + 1:02} | Time: {int(mins)}m {int(secs)}s | ✅ Save Best Model')
+        else:
+            no_improve_epoch += 1
+            print(
+                f'Epoch: {epoch + 1:02} | Time: {int(mins)}m {int(secs)}s | ⚠️ No improve ({no_improve_epoch}/{Config.PATIENCE})')
+
+        print(f'\tTrain Loss: {train_loss:.3f} | Val. Loss: {valid_loss:.3f}')
+
+        if no_improve_epoch >= Config.PATIENCE:
+            print("🛑 Early Stopping!")
+            break
+
+    # --- PHẦN 2: ĐÁNH GIÁ (TEST) ---
+    print("\nĐang load lại model tốt nhất để đánh giá...")
+    # Load lại trọng số tốt nhất đã lưu (Epoch 17 trong log của bạn)
+    model.load_state_dict(torch.load(Config.MODEL_SAVE_PATH))
+
+    # Chạy tính điểm BLEU
+    calculate_bleu_on_test_set(model, Config.TEST_EN_PATH, Config.TEST_FR_PATH)
 
 # ==========================================
 # 5. MAIN EXECUTION
@@ -375,4 +420,9 @@ if __name__ == "__main__":
             break
 
     #Test sau khi train
+    print("\nĐang load lại model tốt nhất để đánh giá...")
+    # Load lại trọng số tốt nhất đã lưu (Epoch 17 trong log của bạn)
+    model.load_state_dict(torch.load(Config.MODEL_SAVE_PATH))
+
+    # Chạy tính điểm BLEU
     calculate_bleu_on_test_set(model, Config.TEST_EN_PATH, Config.TEST_FR_PATH)
