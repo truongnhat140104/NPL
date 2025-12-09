@@ -394,7 +394,7 @@ def translate_custom_sentences(model, sentence_pairs):
 
         print("-" * 60)
 
-def draw_loss_chart(train_losses, val_losses, save_path="loss_chart.png"):
+def draw_loss_chart(train_losses, val_losses, save_path="loss_chart_beamSearch.png"):
     plt.figure(figsize=(10, 6))
     plt.plot(train_losses, label='Train Loss', marker='o', color='blue')
     plt.plot(val_losses, label='Validation Loss', marker='o', color='red')
