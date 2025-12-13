@@ -34,7 +34,7 @@ class Config:
     # Model Hyperparameters
     ENC_EMB_DIM = 256
     DEC_EMB_DIM = 256
-    HID_DIM = 512
+    HID_DIM = 256
     N_LAYERS = 1
     ENC_DROPOUT = 0.5
     DEC_DROPOUT = 0.5
@@ -46,7 +46,7 @@ class Config:
     CLIP = 1
     PATIENCE = 3
 
-    NUM_RUNS = 1
+    NUM_RUNS = 10
 
     # Beam Search
     BEAM_WIDTH = 3
@@ -372,9 +372,9 @@ if __name__ == "__main__":
     my_sentences = [
         ("A black dog is running on the grass.", "Un chien noir court sur l'herbe."),
         ("Two men are playing soccer in the park.", "Deux hommes jouent au football dans le parc."),
+        ("The woman in a red dress is reading a book.", "La femme à la robe rouge lit un livre."),
         ("A little girl is eating an apple.", "Une petite fille mange une pomme."),
-        ("The ","")
-
+        ("People are walking down the street.", "Les gens marchent dans la rue.")
     ]
 
     for run_i in range(1, Config.NUM_RUNS + 1):
