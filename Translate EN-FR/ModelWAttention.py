@@ -372,7 +372,9 @@ if __name__ == "__main__":
     my_sentences = [
         ("A black dog is running on the grass.", "Un chien noir court sur l'herbe."),
         ("Two men are playing soccer in the park.", "Deux hommes jouent au football dans le parc."),
-        ("A little girl is eating an apple.", "Une petite fille mange une pomme.")
+        ("The woman in a red dress is reading a book.", "La femme à la robe rouge lit un livre."),
+        ("A little girl is eating an apple.", "Une petite fille mange une pomme."),
+        ("People are walking down the street.", "Les gens marchent dans la rue.")
     ]
 
     for run_i in range(1, Config.NUM_RUNS + 1):
